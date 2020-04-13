@@ -58,10 +58,12 @@
 
 #define Version "0.0.1"
 
-#include <LiquidCrystal.h>
 #include <si5351.h>
 #include <string.h>
 #include <Wire.h>
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #include <ft857d.h>
 
@@ -134,20 +136,16 @@ ft857d radio = ft857d();
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// lcd Class instantiation
+// oled Class instantiation
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//LCD pin to Arduino
-const int pin_RS = 8; 
-const int pin_EN = 9; 
-const int pin_d4 = 4; 
-const int pin_d5 = 5; 
-const int pin_d6 = 6; 
-const int pin_d7 = 7; 
-const int pin_BL = 10; 
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
-LiquidCrystal lcd( pin_RS,  pin_EN,  pin_d4,  pin_d5,  pin_d6,  pin_d7);
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
 // Global variables
@@ -179,10 +177,7 @@ void catSetFreq(long f) {
 
     si5351.set_freq( ( vfoFrequency * 4 ) * 100ULL, SI5351_CLK0 );
 
-    lcd.setCursor(0,1);
-    lcd.print (vfoFrequency);
-    lcd.setCursor(11,1);
-    lcd.print ("Mhz");
+    updateScreen(vfoFrequency);
   
     #if defined (DEBUG)
     // debug
@@ -390,7 +385,7 @@ void setup() {
   // Initialize the Si5351
   // Change the 2nd parameter in init if using a ref osc other than 25 MHz
   // last value is a frequency correction value if I remember correctly
-  si5351.init( SI5351_CRYSTAL_LOAD_8PF, oscillatorFrequency, 0 );
+  si5351.init( SI5351_CRYSTAL_LOAD_8PF, oscillatorFrequency, -71980 );
 
   // Set CLK0 output
   si5351.drive_strength( SI5351_CLK0, SI5351_DRIVE_8MA );            // Set for max power if desired
@@ -399,15 +394,43 @@ void setup() {
   si5351.output_enable( SI5351_CLK0, TX_ON );                        // turn on the output
   si5351.set_freq( ( vfoFrequency * 4 ) * 100ULL , SI5351_CLK0 );    // and set to our default frequency
 
-  lcd.begin(16, 2);
-  lcd.setCursor(0,0);
-  lcd.print("Phaser 20");
-  lcd.setCursor(0,1);
-  lcd.print (vfoFrequency);
-  lcd.setCursor(11,1);
-  lcd.print ("Mhz");
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
 
+  updateScreen(vfoFrequency);
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// - update Screen with new frequency display
+// 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void updateScreen(long f) {
+  display.clearDisplay();
+  display.setTextSize(2);             // Draw 2X-scale text
+  display.setCursor(0,0);             // Start at top-left corner
+  display.setTextColor(SSD1306_BLACK, SSD1306_WHITE); // Draw 'inverse' text
+  display.println(" Phaser 20");
+  display.setCursor(0,25);             
+  display.setTextColor(SSD1306_WHITE);
+ // String fDisp =  String(f/1000000) + ".0" + String(f%1000000);
+  String fDisp = String(f);
+//  fDisp = fDisp.substring(0,fDisp.length()-3) + " " + fDisp.substring(fDisp.length()-3);
+  fDisp = fDisp.substring(0,fDisp.length()-6) + "." + fDisp.substring(fDisp.length()-6);
+  display.print(fDisp.substring(0,fDisp.length()-3));
+  display.setTextSize(1);
+  display.print(" " + fDisp.substring(fDisp.length()-3));
+  display.println(" Mhz");
+  display.setCursor(0,55);             
+  display.println(f);
+  display.display();
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
