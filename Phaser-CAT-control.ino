@@ -71,7 +71,7 @@
 #define TX_OFF                   0
 
 #define oscillatorFrequency    25000000         // for phaser
-#define frequencyCorrection    -25              // - determined emperically for current si5351a and 25MHz crystal
+#define frequencyCorrection    -71980           // - determined emperically for current si5351a and 25MHz crystal
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -385,7 +385,7 @@ void setup() {
   // Initialize the Si5351
   // Change the 2nd parameter in init if using a ref osc other than 25 MHz
   // last value is a frequency correction value if I remember correctly
-  si5351.init( SI5351_CRYSTAL_LOAD_8PF, oscillatorFrequency, -71980 );
+  si5351.init( SI5351_CRYSTAL_LOAD_8PF, oscillatorFrequency, frequencyCorrection );
 
   // Set CLK0 output
   si5351.drive_strength( SI5351_CLK0, SI5351_DRIVE_8MA );            // Set for max power if desired
@@ -417,9 +417,7 @@ void updateScreen(long f) {
   display.println(" Phaser 20");
   display.setCursor(0,25);             
   display.setTextColor(SSD1306_WHITE);
- // String fDisp =  String(f/1000000) + ".0" + String(f%1000000);
   String fDisp = String(f);
-//  fDisp = fDisp.substring(0,fDisp.length()-3) + " " + fDisp.substring(fDisp.length()-3);
   fDisp = fDisp.substring(0,fDisp.length()-6) + "." + fDisp.substring(fDisp.length()-6);
   display.print(fDisp.substring(0,fDisp.length()-3));
   display.setTextSize(1);
